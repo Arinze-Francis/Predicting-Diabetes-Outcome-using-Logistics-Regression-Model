@@ -1,0 +1,195 @@
+---
+title: "Prima Indians Diabetes Outcome Logistics regression"
+author: "Arinze Francis"
+date: '2022-06-21'
+output: html_document
+---
+
+```{r, message=FALSE, echo=FALSE}
+rm(list=ls())
+options(scipen=999,digits=4)
+rm
+
+
+```
+
+
+# Load R packages
+
+```{r, message=FALSE, echo=FALSE}
+library(tidyr)
+library(ggplot2)
+library(tidyverse)
+library(readxl)
+library(ggplot2)
+library(olsrr)
+library(spdep)
+library(modelr)
+library(fastDummies)
+library(stargazer)
+library(sjPlot)
+library(rms)
+library(sf)
+library(dplyr)
+```
+
+# Dataset loading and manipulations
+
+```{r}
+data <- read.table("pima-indians-diabetes.csv", header = T, sep ="," )
+head(data)
+any(is.na(data))
+
+
+# Converting the dependent variable to factor
+data$Outcome <- as.factor(data$Outcome)
+str(data)
+
+
+
+```
+
+
+
+# Fit Logistics Regression model
+```{r}
+
+data_result <- lrm(Outcome~ Age +DiabetesPedigreeFunction+BMI+ Insulin +SkinThickness +BloodPressure +Glucose+Pregnancies ,x=T,y=T,data = data )
+data_result
+
+# For the coefficient table; The coefficient table showed that glucose, pregnancies, body mass index,  Blood pressure and Diabetes pedigree function variable has significant positive influence (p-values < 0.05) on diabetes.
+
+# Each one-unit change in glucose will increase the log odds of having diabetes by 0.035, and its p-value indicates that it is significant in determining diabetes. Also, each unit increase in BMI increases the log odds of having diabetes by 0.0897 and p-value is significant too and etc.
+
+# Interpretation: On the top right, you see several discrimination indices. The C denotes the c-index (AUC), In this case, the c-index is 0.839 (>0.8) meaning it is good enough for predicting the outcomes of individuals.
+
+
+```
+
+
+# to obtain odds ratio and inter-quartile range
+```{r}
+
+# Estimate odd ratios
+data_result$coefficients %>% exp()
+
+# Interpretation: The odds of being diabetes positive increases by 1.03 with an increase in Glucose, The odds of being diabetes positive increases by 1.09 with an increase in Body mass Index and etc
+
+# Estimate inter-quartile range
+di <- datadist(data) # 
+options(datadist='di')
+data_result %>% summary()
+
+```
+
+
+# Diagnostics
+
+# Outliers
+
+
+```{r}
+
+data_1 <- data %>% mutate(Residuals = residuals(data_result, type = 'pearson'),
+                      Index=1:nrow(data))
+head(data_1)
+
+
+
+# Visualization of the Outliers
+data_2 <- data_1 %>% ggplot(aes(x=Index, y=abs(Residuals))) + geom_hline(yintercept = 2, 
+                                                                   col='firebrick') + geom_text(aes(label = Index), 
+                                                                                                                col = 'darkblue', size = 3) + labs(title = 'Outlier check', 
+                                                                                                                                                   y = "Residual", x = "Index") + theme_classic()
+data_2
+
+```
+
+
+# Multicollinearity
+
+```{r}
+
+data_result %>% vif()
+
+# Interpreation: There is no case of multicollinearity as the values were below 5
+
+```
+
+
+# Validate Model Using Bootstrap
+
+
+```{r}
+
+model_validity <- validate(data_result, method="boot", B=1000)
+model_validity
+
+# Interpreation: Using the Dxy, the bias-corrected Dxy is a bit smaller (0.6632) than the original (0.6789). The bias-corrected c-index (AUC) is c=1+Dxy2 which equals 0.8316.
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
